@@ -52,8 +52,13 @@ ious1 = onemanyiou(q, db)
 
 xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy = create_map(db)
 
-%timeit query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy)
+%timeit query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=False)
 
-ious2 = query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy)
+
+ious2 = query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=False)
 np.max(np.abs(ious1 - ious2))
+
+ious3 = query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=True)
+%timeit query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=True)
+np.max(np.abs(ious1 - ious3))
 ```
