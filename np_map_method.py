@@ -91,8 +91,42 @@ def query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor
     # return
     #  ious
     nb = boxarea.shape[0]
-    ious = np.zeros(nb)
+    interarea = np.zeros(nb)
+    nx = len(xlist)
+    ny = len(ylist)
 
+    x0, y0, x1, y1 = q
+    qarea = (x1 - x0) * (y1 - y0)
+    fx0 = 0
+    fx1 = nx
+    fy0 = 0
+    fy1 = ny
+    for ix in range(nx):
+        if x0 > xlist[ix]:
+            fx0 = ix + 1
+            continue
+        elif x0 <= xlist[ix] and x1 > xlist[ix]:
+            fx1 = ix
+        else:
+            fx1 = ix
+            break
+    for iy in range(ny):
+        if y0 > ylist[iy]:
+            fy0 = iy + 1
+            continue
+        elif y0 <= ylist[iy] and y1 > ylist[iy]:
+            fy1 = iy
+        else:
+            fy1 = iy
+            break
+    # handle cells
+    for ix in range(fx0, fx1):
+        for iy in range(fy0, fy1):
+            for otherb in maplist[(ix, iy)]:
+                interarea[otherb] += maparea[(ix, iy)]
+
+    # handle partial cells
     # TODO
 
+    ious = interarea / (boxarea - interarea + qarea)
     return ious

@@ -2,7 +2,7 @@
 
 ## Known issues / Unfinished items
 
-* implementation for query_from_map
+* partial cell implementation for query_from_map
 * speedup for integer locations
 
 ## Requirements
