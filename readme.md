@@ -2,8 +2,9 @@
 
 ## Known issues / Unfinished items
 
-* partial cell implementation for query_from_map
-* speedup for integer locations
+- [x] partial cell implementation for query_from_map
+- [ ] not handle query box width or height less than original resolution
+- [ ] floating point is too slow, speedup for integer locations
 
 ## Requirements
 
@@ -22,6 +23,24 @@ pip install ipython
 * type: floating point
 * tolerance: we expect the distance of two different floating number should be larger than `tol``
 
+## Report
+
+```bash
+python test.py
+```
+
+```text
+Accuracy Report:
+Max abs diff (fast) 0.003242057242958514
+Max abs diff (accurate) 6.877390308434109e-05
+Execution Time for 100 iterations:
+naive_method__onemanyiou 0.0017145780002465472
+map_method__create_map 22.701142375000018
+map_method__query_from_map_fast 0.07468162900022435
+map_method__query_from_map_accurate 0.08704350199968758
+```
+
+
 ## Naive methods and test data generation
 
 ```ipython
@@ -31,10 +50,10 @@ q, db = gen_q_db(128)
 
 %timeit onemanyiou(q, db)
 
-ious = onemanyiou(q, db)
+ious1 = onemanyiou(q, db)
 ```
 
-## Create map for query
+## Create map for query and two query methods
 
 ```ipython
 import numpy as np
@@ -44,16 +63,6 @@ from np_map_method import create_map, query_from_map
 
 q, db = gen_q_db(128)
 
-%timeit onemanyiou(q, db)
-%timeit create_map(db)
-
-
-ious1 = onemanyiou(q, db)
-
-xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy = create_map(db)
-
-%timeit query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy)
-
-ious2 = query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy)
-np.max(np.abs(ious1 - ious2))
+ious2 = query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=False)
+ious3 = query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=True)
 ```

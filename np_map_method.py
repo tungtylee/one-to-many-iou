@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 
-def create_map(db, tol=0):
+def create_map(db, tol=0, extremeAdd=[0, 1200]):
     # db: multiple bounding boxes in a np.array with shape (n, 4)
     # return:
     #  xlist: np.array with shape (nx, )
@@ -15,8 +15,11 @@ def create_map(db, tol=0):
     #  floor_invy is Dict[int, int]
 
     # unique and sorted
+    # TODO
+    # dbvalplus = np.concatenate((db[:, 0::2], np.array(extremeAdd).reshape(-1, 2)))
     xlist = np.unique(db[:, 0::2])
     xlist.sort()
+    # dbvalplus = np.concatenate((db[:, 1::2], np.array(extremeAdd).reshape(-1, 2)))
     ylist = np.unique(db[:, 1::2])
     ylist.sort()
     boxarea = (db[:, 2] - db[:, 0]) * (db[:, 3] - db[:, 1])
@@ -79,7 +82,9 @@ def create_map(db, tol=0):
     return xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy
 
 
-def query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy):
+def query_from_map(
+    q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor_invy, accurate=True
+):
     # q: multiple bounding boxes in a np.array with shape (n, 4)
     # xlist: np.array with shape (nx, )
     # ylist: np.array with shape (ny, )
@@ -125,8 +130,70 @@ def query_from_map(q, xlist, ylist, maplist, maparea, boxarea, floor_invx, floor
             for otherb in maplist[(ix, iy)]:
                 interarea[otherb] += maparea[(ix, iy)]
 
-    # handle partial cells
+    if accurate is False:
+        ious = interarea / (boxarea - interarea + qarea)
+        return ious
+
+    # handle small cells
     # TODO
 
+    # handle partial cells
+    # 012
+    # 3x5
+    # 678
+    if x0 < xlist[fx0] and y0 < ylist[fy0]:
+        # case 0
+        smallarea = (xlist[fx0] - x0) * (ylist[fy0] - y0)
+        assert smallarea >= 0
+        for otherb in maplist[(fx0 - 1, fy0 - 1)]:
+            interarea[otherb] += smallarea
+    if y0 < ylist[fy0]:
+        # case 1
+        for ix in range(fx0, fx1):
+            smallarea = (xlist[ix + 1] - xlist[ix]) * (ylist[fy0] - y0)
+            assert smallarea >= 0
+            for otherb in maplist[(ix, fy0 - 1)]:
+                interarea[otherb] += smallarea
+    if fx1 != nx and x1 > xlist[fx1] and y0 < ylist[fy0]:
+        # case 2
+        smallarea = (x1 - xlist[fx1]) * (ylist[fy0] - y0)
+        assert smallarea >= 0
+        for otherb in maplist[(fx1, fy0 - 1)]:
+            interarea[otherb] += smallarea
+
+    if x0 < xlist[fx0]:
+        # case 3
+        for iy in range(fy0, fy1):
+            smallarea = (xlist[fx0] - x0) * (ylist[iy + 1] - ylist[iy])
+            assert smallarea >= 0
+            for otherb in maplist[(fx0 - 1, iy)]:
+                interarea[otherb] += smallarea
+    if fx1 != nx and x1 > xlist[fx1]:
+        # case 5
+        for iy in range(fy0, fy1):
+            smallarea = (x1 - xlist[fx1]) * (ylist[iy + 1] - ylist[iy])
+            assert smallarea >= 0
+            for otherb in maplist[(fx1, iy)]:
+                interarea[otherb] += smallarea
+
+    if x0 < xlist[fx0] and fy1 != ny and y1 > ylist[fy1]:
+        # case 6
+        smallarea = (xlist[fx0] - x0) * (y1 - ylist[fy1])
+        assert smallarea >= 0
+        for otherb in maplist[(fx0 - 1, fy1)]:
+            interarea[otherb] += smallarea
+    if fy1 != ny and y1 > ylist[fy1]:
+        # case 7
+        for ix in range(fx0, fx1):
+            smallarea = (xlist[ix + 1] - xlist[ix]) * (y1 - ylist[fy1])
+            assert smallarea >= 0
+            for otherb in maplist[(ix, fy1)]:
+                interarea[otherb] += smallarea
+    if fx1 != nx and x1 > xlist[fx1] and fy1 != ny and y1 > ylist[fy1]:
+        # case 8
+        smallarea = (x1 - xlist[fx1]) * (y1 - ylist[fy1])
+        assert smallarea >= 0
+        for otherb in maplist[(fx1, fy1)]:
+            interarea[otherb] += smallarea
     ious = interarea / (boxarea - interarea + qarea)
     return ious
